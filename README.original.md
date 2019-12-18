@@ -11,7 +11,7 @@ Goals
 =====
 
 * Idiomatic TypeScript/ES6 types
-  * `ts-proto` is a clean break from either the built-in Google/Java-esque JS of `protoc` and `protobufjs` 
+  * `ts-proto` is a clean break from either the built-in Google/Java-esque JS of `protoc` and `protobufjs`
   * (Techically the `protobufjs/minimal` package is used for actually reading/writing bytes.)
 * TypeScript-first output
 * Interfaces over classes
@@ -81,7 +81,7 @@ Highlights
   Wrapper types, i.e. `google.protobuf.StringValue`, are mapped as optional values,
   i.e. `string | undefined`, which means for primitives we can kind of pretend that
   the protobuf type system has optional types.
-  
+
 * Timestamp is mapped as `Date`
 
 * `fromJSON`/`toJSON` support the [canonical Protobuf JS](https://developers.google.com/protocol-buffers/docs/proto3#json) format (i.e. timestamps are ISO strings)
@@ -182,7 +182,7 @@ Protobuf has several built-in types for this pattern, i.e. `google.protobuf.Stri
 
 This hides some of the `StringValue` mess and gives a more idiomatic way of using them.
 
-Granted, it's unfortunate this is not as simple as marking the `string` as `optional`. 
+Granted, it's unfortunate this is not as simple as marking the `string` as `optional`.
 
 Current Status of Optional Values
 =================================
