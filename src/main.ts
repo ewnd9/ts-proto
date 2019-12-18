@@ -83,27 +83,27 @@ export function generateFile(typeMap: TypeMap, fileDesc: FileDescriptorProto, pa
   visit(
     fileDesc,
     (fullName, message) => {
-      file = file.addProperty(generateBaseInstance(fullName, message));
-      let staticMethods = CodeBlock.empty()
-        .add('export const %L = ', fullName)
-        .beginHash()
-        .addHashEntry(generateEncode(typeMap, fullName, message))
-        .addHashEntry(generateDecode(typeMap, fullName, message))
-        .addHashEntry(generateFromJson(typeMap, fullName, message))
-        .addHashEntry(generateFromPartial(typeMap, fullName, message))
-        .addHashEntry(generateToJson(typeMap, fullName, message))
-        .endHash()
-        .add(';')
-        .newLine();
-      file = file.addCode(staticMethods);
+      // file = file.addProperty(generateBaseInstance(fullName, message));
+      // let staticMethods = CodeBlock.empty()
+      //   .add('export const %L = ', fullName)
+      //   .beginHash()
+      //   .addHashEntry(generateEncode(typeMap, fullName, message))
+      //   .addHashEntry(generateDecode(typeMap, fullName, message))
+      //   .addHashEntry(generateFromJson(typeMap, fullName, message))
+      //   .addHashEntry(generateFromPartial(typeMap, fullName, message))
+      //   .addHashEntry(generateToJson(typeMap, fullName, message))
+      //   .endHash()
+      //   .add(';')
+      //   .newLine();
+      // file = file.addCode(staticMethods);
     },
     (fullName, enumDesc) => {
-      let staticMethods = CodeBlock.empty()
-        .beginControlFlow('export namespace %L', fullName)
-        .addFunction(generateEnumFromJson(fullName, enumDesc))
-        .addFunction(generateEnumToJson(fullName, enumDesc))
-        .endControlFlow();
-      file = file.addCode(staticMethods);
+      // let staticMethods = CodeBlock.empty()
+      //   .beginControlFlow('export namespace %L', fullName)
+      //   .addFunction(generateEnumFromJson(fullName, enumDesc))
+      //   .addFunction(generateEnumToJson(fullName, enumDesc))
+      //   .endControlFlow();
+      // file = file.addCode(staticMethods);
     }
   );
 
@@ -113,22 +113,22 @@ export function generateFile(typeMap: TypeMap, fileDesc: FileDescriptorProto, pa
   });
 
   if (fileDesc.service.length > 0) {
-    file = file.addInterface(generateRpcType(options));
+    // file = file.addInterface(generateRpcType(options));
     if (options.useContext) {
       file = file.addInterface(generateDataLoadersType(options));
     }
   }
 
-  file = addLongUtilityMethod(file);
-  file = addDeepPartialType(file);
+  // file = addLongUtilityMethod(file);
+  // file = addDeepPartialType(file);
 
-  let hasAnyTimestamps = false;
-  visit(fileDesc, (_, messageType) => {
-    hasAnyTimestamps = hasAnyTimestamps || asSequence(messageType.field).any(isTimestamp);
-  });
-  if (hasAnyTimestamps) {
-    file = addTimestampMethods(file);
-  }
+  // let hasAnyTimestamps = false;
+  // visit(fileDesc, (_, messageType) => {
+  //   hasAnyTimestamps = hasAnyTimestamps || asSequence(messageType.field).any(isTimestamp);
+  // });
+  // if (hasAnyTimestamps) {
+  //   file = addTimestampMethods(file);
+  // }
 
   return file;
 }
