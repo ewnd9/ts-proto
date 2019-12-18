@@ -67,6 +67,7 @@ export function generateFile(typeMap: TypeMap, fileDesc: FileDescriptorProto, pa
   // the package already implicitly in it, so we won't re-append/strip/etc. it out/back in.
   const moduleName = fileDesc.name.replace('.proto', '.ts');
   let file = FileSpec.create(moduleName);
+  file = file.addCode(CodeBlock.empty().add(`import { AxiosInstance } from 'axios'`));
 
   // first make all the type declarations
   visit(
@@ -109,7 +110,7 @@ export function generateFile(typeMap: TypeMap, fileDesc: FileDescriptorProto, pa
 
   visitServices(fileDesc, serviceDesc => {
     file = file.addInterface(generateService(typeMap, fileDesc, serviceDesc, options));
-    file = file.addClass(generateServiceClientImpl(typeMap, fileDesc, serviceDesc, options));
+    file = file.addClass(generateServiceAxiosClientImpl(typeMap, fileDesc, serviceDesc, options));
   });
 
   if (fileDesc.service.length > 0) {
@@ -722,6 +723,34 @@ function generateRegularRpcMethod(
     .returns(responsePromise(typeMap, methodDesc));
 }
 
+function generateRegularAxiosRpcMethod(
+  options: Options,
+  typeMap: TypeMap,
+  fileDesc: google.protobuf.FileDescriptorProto,
+  serviceDesc: google.protobuf.ServiceDescriptorProto,
+  methodDesc: google.protobuf.MethodDescriptorProto
+) {
+  let requestFn = FunctionSpec.create(methodDesc.name);
+  if (options.useContext) {
+    requestFn = requestFn.addParameter('ctx', TypeNames.typeVariable('Context'));
+  }
+
+  const method = 'GET';
+  const url = '/api/v1/get';
+
+  return requestFn
+    .addParameter('request', requestType(typeMap, methodDesc))
+    .addStatement(
+      `return this.axios({method: "${method}", url: "${url}"}).then(({data}) => data)`,
+      // options.useContext ? 'ctx, ' : '', // sneak ctx in as the 1st parameter to our rpc call
+      // fileDesc.package,
+      // serviceDesc.name,
+      // methodDesc.name,
+      // 'data'
+    )
+    .returns(responsePromise(typeMap, methodDesc));
+}
+
 function generateServiceClientImpl(
   typeMap: TypeMap,
   fileDesc: FileDescriptorProto,
@@ -760,6 +789,49 @@ function generateServiceClientImpl(
       client = client.addFunction(generateCachingRpcMethod(typeMap, fileDesc, serviceDesc, methodDesc));
     } else {
       client = client.addFunction(generateRegularRpcMethod(options, typeMap, fileDesc, serviceDesc, methodDesc));
+    }
+  }
+  return client;
+}
+
+function generateServiceAxiosClientImpl(
+  typeMap: TypeMap,
+  fileDesc: FileDescriptorProto,
+  serviceDesc: ServiceDescriptorProto,
+  options: Options
+): ClassSpec {
+  // Define the FooServiceImpl class
+  let client = ClassSpec.create(`${serviceDesc.name}ClientImpl`).addModifiers(Modifier.EXPORT);
+  if (options.useContext) {
+    client = client.addTypeVariable(contextTypeVar);
+    client = client.addInterface(`${serviceDesc.name}<Context>`);
+  } else {
+    client = client.addInterface(serviceDesc.name);
+  }
+
+  // Create the constructor(rpc: Rpc)
+  const rpcType = options.useContext ? 'Rpc<Context>' : 'AxiosClient';
+  client = client.addFunction(
+    FunctionSpec.createConstructor()
+      .addParameter('axios', rpcType)
+      .addStatement('this.axios = axios')
+  );
+  client = client.addProperty('axios', rpcType, { modifiers: [Modifier.PRIVATE, Modifier.READONLY] });
+
+  // Create a method for each FooService method
+  for (const methodDesc of serviceDesc.method) {
+    // See if this this fuzzy matches to a batchable method
+    if (options.useContext) {
+      const batchMethod = detectBatchMethod(typeMap, fileDesc, serviceDesc, methodDesc);
+      if (batchMethod) {
+        client = client.addFunction(generateBatchingRpcMethod(typeMap, batchMethod));
+      }
+    }
+
+    if (options.useContext && methodDesc.name.match(/^Get[A-Z]/)) {
+      client = client.addFunction(generateCachingRpcMethod(typeMap, fileDesc, serviceDesc, methodDesc));
+    } else {
+      client = client.addFunction(generateRegularAxiosRpcMethod(options, typeMap, fileDesc, serviceDesc, methodDesc));
     }
   }
   return client;
