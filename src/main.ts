@@ -67,7 +67,7 @@ export function generateFile(typeMap: TypeMap, fileDesc: FileDescriptorProto, pa
   // the package already implicitly in it, so we won't re-append/strip/etc. it out/back in.
   const moduleName = fileDesc.name.replace('.proto', '.ts');
   let file = FileSpec.create(moduleName);
-  file = file.addCode(CodeBlock.empty().add(`import { AxiosInstance } from 'axios'`));
+  file = file.addCode(CodeBlock.empty().add(`import { AxiosInstance } from 'axios';`));
 
   // first make all the type declarations
   visit(
@@ -741,7 +741,11 @@ function generateRegularAxiosRpcMethod(
   return requestFn
     .addParameter('request', requestType(typeMap, methodDesc))
     .addStatement(
-      `return this.axios({method: "${method}", url: "${url}"}).then(({data}) => data)`,
+      `return this.axios({
+        method: "${method}",
+        url: "${url}",
+        ${method === 'GET' ? `params: request` : `data: request`},
+      }).then(({data}) => data)`,
       // options.useContext ? 'ctx, ' : '', // sneak ctx in as the 1st parameter to our rpc call
       // fileDesc.package,
       // serviceDesc.name,
@@ -810,7 +814,7 @@ function generateServiceAxiosClientImpl(
   }
 
   // Create the constructor(rpc: Rpc)
-  const rpcType = options.useContext ? 'Rpc<Context>' : 'AxiosClient';
+  const rpcType = options.useContext ? 'Rpc<Context>' : 'AxiosInstance';
   client = client.addFunction(
     FunctionSpec.createConstructor()
       .addParameter('axios', rpcType)
